@@ -1,4 +1,4 @@
-# rsa.py
+# pip install pycryptodome
 import math
 import os
 from Crypto.Util import number
