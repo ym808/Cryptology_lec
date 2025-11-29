@@ -1,6 +1,6 @@
 # receiver.py
 import socket
-from RSA import RSA3P
+from crypto.RSA import RSA3P
 from Communication import Receiver
 
 HOST = '127.0.0.1'

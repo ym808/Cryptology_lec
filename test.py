@@ -1,5 +1,5 @@
 import time
-from RSA import RSA2P, RSA3P
+from crypto.RSA import RSA2P, RSA3P
 
 # 출력 보조
 def hex_preview(b: bytes, limit=32):

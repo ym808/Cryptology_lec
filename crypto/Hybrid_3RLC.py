@@ -1,8 +1,6 @@
-# HybridCipher.py 같은 파일로 빼도 좋고, SymmetricKey.py 안에 클래스 추가해도 됨
 from typing import Tuple
-
-from RSA import RSA3P          # or RSA2P
-from LfsrBlock import LfsrBlock
+from crypto.RSA import RSA3P          # or RSA2P
+from crypto.LfsrBlock import LfsrBlock
 
 
 class Hybrid_3RLC:

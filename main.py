@@ -6,7 +6,7 @@ import time
 def main():
     # 1️⃣ Receiver 창 실행
     subprocess.Popen(
-        'start cmd /k python receiver.py',
+        'start cmd /k python com/receiver.py',
         shell=True
     )
     print("[Launcher] Receiver window opened.")
@@ -16,7 +16,7 @@ def main():
 
     # 2️⃣ Sender 창 실행
     subprocess.Popen(
-        'start cmd /k python sender.py',
+        'start cmd /k python com/sender.py',
         shell=True
     )
     print("[Launcher] Sender window opened.")

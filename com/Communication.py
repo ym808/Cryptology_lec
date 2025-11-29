@@ -1,9 +1,9 @@
 # communication.py
 from dataclasses import dataclass
 import secrets
-from RSA import RSA3P
-from LfsrBlock import LfsrBlock
-from Hybrid_3RLC import Hybrid_3RLC
+from crypto.RSA import RSA3P
+from crypto.LfsrBlock import LfsrBlock
+from crypto.Hybrid_3RLC import Hybrid_3RLC
 
 
 XOR_POS1 = [0, 3, 5]
