@@ -1,4 +1,5 @@
 from typing import Sequence, List
+from sympy.ntheory.modular import crt
 
 
 class LfsrBlock:
@@ -25,37 +26,60 @@ class LfsrBlock:
         self.xor_positions3 = list(xor_positions3)
 
     def shift(self, lfsr: int, xor_positions: List[int]) -> (int, int):
-        """
-        한 스텝 시프트 + 피드백 XOR 계산
-        """
-        # 출력 비트 (LSB)
         out_bit = lfsr & 1
 
-        # XOR 피드백 계산
         fb = 0
         for pos in xor_positions:
             fb ^= (lfsr >> pos) & 1
 
-        # 오른쪽 시프트 후 MSB에 fb 삽입
+        # 오른쪽 시프트
         lfsr >>= 1
         lfsr |= (fb << (self.width - 1))
         lfsr &= self.mask
 
         return lfsr, out_bit
 
-    def step(self) -> int:
-        """
-        1 → 항상 시프트
-        2/3 → r1에 따라 조건 시프트
-        최종 출력: r1 ^ r2 ^ r3
-        """
-        self.lfsr1, r1 = self.shift(self.lfsr1, self.xor_positions1)
+    def generate_key(self) -> int:
 
-        if r1 == 1:
+        out1 = 0
+        out2 = 0
+        out3 = 0
+
+        # 8비트 뽑기
+        for _ in range(8):
+            self.lfsr1, r1 = self.shift(self.lfsr1, self.xor_positions1)
             self.lfsr2, r2 = self.shift(self.lfsr2, self.xor_positions2)
-            r3 = self.lfsr3 & 1
-        else:
             self.lfsr3, r3 = self.shift(self.lfsr3, self.xor_positions3)
-            r2 = self.lfsr2 & 1
 
-        return r1 ^ r2 ^ r3
+            out1 = ((out1 << 1) | r1) & self.mask
+            out2 = ((out2 << 1) | r2) & self.mask
+            out3 = ((out3 << 1) | r3) & self.mask
+
+        # CRT 결합 → 키 1바이트
+        moduli = [101, 103, 107]
+
+        outs = [out1, out2, out3]
+        result, _ = crt(moduli, outs)
+        key = int(result % 256)
+
+        # 마지막 r1에 따라 다음 문자용 상태를 비선형 업데이트
+        if (out1 & 1) == 1:
+            # r1 == 1 → LFSR2: 2bit, LFSR3: 1bit 시프트
+            self.lfsr2, _ = self.shift(self.lfsr2, self.xor_positions2)
+            self.lfsr2, _ = self.shift(self.lfsr2, self.xor_positions2)
+            self.lfsr3, _ = self.shift(self.lfsr3, self.xor_positions3)
+        else:
+            # r1 == 0 → LFSR3: 2bit, LFSR2: 1bit 시프트
+            self.lfsr3, _ = self.shift(self.lfsr3, self.xor_positions3)
+            self.lfsr3, _ = self.shift(self.lfsr3, self.xor_positions3)
+            self.lfsr2, _ = self.shift(self.lfsr2, self.xor_positions2)
+
+        return key
+
+    def encrypt_byte(self, m: int) -> int:
+        k = self.generate_key()
+        return k^m
+
+    def decrypt_byte(self, c: int) -> int:
+        k = self.generate_key()
+        return k ^ c
