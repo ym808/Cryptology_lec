@@ -1,22 +1,31 @@
 # launcher.py
 import subprocess
 import time
+import os
+import sys
 
 
 def main():
-    # 1️⃣ Receiver 창 실행
+    # 포트는 인자로 받거나, 없으면 기본 9000
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 9000
+
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    receiver_path = os.path.join(base_path, "com", "Receiver.py")
+    sender_path = os.path.join(base_path, "com", "Sender.py")
+
+    # Receiver 실행 ( /c : 프로그램 끝나면 창도 같이 닫힘 )
     subprocess.Popen(
-        'start cmd /k python com/receiver.py',
+        f'start cmd /c python -u "{receiver_path}" {port}',
         shell=True
     )
-    print("[Launcher] Receiver window opened.")
+    print(f"[Launcher] Receiver window opened on port {port}.")
 
-    # 서버 준비 시간(1초 정도 여유)
+    # 서버 준비시간
     time.sleep(1)
 
-    # 2️⃣ Sender 창 실행
+    # Sender 실행
     subprocess.Popen(
-        'start cmd /k python com/sender.py',
+        f'start cmd /c python -u "{sender_path}" {port}',
         shell=True
     )
     print("[Launcher] Sender window opened.")

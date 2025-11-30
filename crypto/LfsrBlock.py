@@ -34,7 +34,7 @@ class LfsrBlock:
 
         # 오른쪽 시프트
         lfsr >>= 1
-        lfsr |= (fb << (self.width - 1))
+        lfsr |= fb << (self.width - 1)
         lfsr &= self.mask
 
         return lfsr, out_bit
