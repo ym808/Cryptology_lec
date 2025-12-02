@@ -21,6 +21,14 @@ class LfsrBlock:
         self.lfsr2 = seeds[1] & self.mask
         self.lfsr3 = seeds[2] & self.mask
 
+        # LFSR Zero-state 회피
+        if self.lfsr1 == 0:
+            self.lfsr1 = 1
+        if self.lfsr2 == 0:
+            self.lfsr2 = 1
+        if self.lfsr3 == 0:
+            self.lfsr3 = 1
+
         self.xor_positions1 = list(xor_positions1)
         self.xor_positions2 = list(xor_positions2)
         self.xor_positions3 = list(xor_positions3)
