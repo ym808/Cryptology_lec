@@ -23,9 +23,9 @@ def main():
     # 포트는 인자로 받기 (없으면 기본 9000)
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 9000
 
-    # 1) Receiver 인스턴스 생성 → RSA 키 자동 생성
+    # 1) Receiver 인스턴스 생성 → RSA 키 2개 자동 생성
     rcv = CryptoReceiver(2048)
-    print("[Receiver] RSA key generated.")
+    print("[Receiver] RSA (even/odd) keys generated.")
 
     # 2) 서버 소켓 열기
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -36,11 +36,11 @@ def main():
     conn, addr = server.accept()
     print(f"[Receiver] Connected by {addr}")
 
-    # 3) 송신자에게 공개키 전송
-    N, e = rcv.public_key
-    pk_str = f"{N},{e}"
+    # 3) 송신자에게 공개키 2개 전송
+    (N_even, e_even), (N_odd, e_odd) = rcv.public_keys
+    pk_str = f"{N_even},{e_even};{N_odd},{e_odd}"
     conn.sendall(pk_str.encode("utf-8"))
-    print("[Receiver] Public key sent.")
+    print("[Receiver] Public keys sent.")
 
     # 4) 송신자로부터 enc_seed(정수) 수신
     enc_seed_data = conn.recv(4096).decode("utf-8").strip()

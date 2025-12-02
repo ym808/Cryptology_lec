@@ -22,13 +22,24 @@ def main():
     client.connect((HOST, port))
     print("[Sender] Connected to Receiver.")
 
-    # 1) 수신자로부터 공개키 수신
+    # 1) 수신자로부터 공개키 2개 수신
+    # 형식: "N_even,e_even;N_odd,e_odd"
     pk_data = client.recv(4096).decode("utf-8").strip()
-    N, e = map(int, pk_data.split(","))
-    print("[Sender] Public key received.")
+    try:
+        pk_even_str, pk_odd_str = pk_data.split(";")
+        N_even, e_even = map(int, pk_even_str.split(","))
+        N_odd,  e_odd  = map(int, pk_odd_str.split(","))
+    except Exception as e:
+        print("[Sender] ERROR: invalid public key format:", pk_data)
+        client.close()
+        return
 
-    # 2) Sender 인스턴스 생성 (RSA 공개키로 enc_seed 생성 + cipher 초기화)
-    sender = CryptoSender((N, e))
+    print("[Sender] Public keys received.")
+    print("[Sender]  even:", N_even, e_even)
+    print("[Sender]  odd :", N_odd,  e_odd)
+
+    # 2) Sender 인스턴스 생성 (RSA 공개키 2개로 enc_seed 생성 + cipher 초기화)
+    sender = CryptoSender(((N_even, e_even), (N_odd, e_odd)))
     enc_seed = sender.enc_seed
     client.sendall(str(enc_seed).encode("utf-8"))
     print("[Sender] EncSeed sent:", enc_seed)
