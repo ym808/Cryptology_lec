@@ -128,17 +128,9 @@ class Receiver:
 
     @property
     def public_keys(self) -> Tuple[Tuple[int, int], Tuple[int, int]]:
-        """
-        송신자에게 전달할 공개키 2개
-        return: ((N_even, e_even), (N_odd, e_odd))
-        """
         return (self.rsa_even.N, self.rsa_even.e), (self.rsa_odd.N, self.rsa_odd.e)
 
     def seed_init(self, enc_seed: int) -> None:
-        """
-        송신자로부터 받은 enc_seed(정수)를
-        짝수용 키(rsa_even)로 복호화해서 LFSR seed 2개 복원.
-        """
         M = self.rsa_even.decryption(enc_seed)
 
         self.seed_even = (M >> 24) & ((1 << 24) - 1)

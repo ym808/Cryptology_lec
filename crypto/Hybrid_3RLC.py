@@ -6,16 +6,6 @@ from crypto.LfsrBlock import LfsrBlock
 class Hybrid_3RLC:
     """
     LFSR 블록 2개로 짝/홀 인덱스에 따라 XOR만 수행하는 스트림 암호 레이어.
-
-    - encrypt_split(msg):
-        평문 바이트열을 받아 LFSR 키스트림과 XOR 수행 후
-        짝수 인덱스 바이트들은 even_stream,
-        홀수 인덱스 바이트들은 odd_stream 으로 분리한다.
-
-    - decrypt_merge(even_stream, odd_stream):
-        RSA 복호까지 끝난 짝/홀 스트림을 받아
-        같은 LFSR 순서로 XOR 을 수행하고,
-        원래 인덱스 순서(0,1,2,3,...)에 맞게 다시 합쳐 평문을 복원한다.
     """
 
     def __init__(self, lfsr_even: LfsrBlock, lfsr_odd: LfsrBlock) -> None:
