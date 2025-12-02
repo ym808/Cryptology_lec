@@ -1,14 +1,14 @@
 # com/Receiver.py
 import socket
 import sys
-from com.Communication import Receiver as CryptoReceiver  # 같은 폴더에 Communication.py 있다고 가정
 
+from com.Communication import Receiver as CryptoReceiver, short_int
 
 HOST = "127.0.0.1"
 
 
-def recv_exact(conn, n: int) -> bytes:
-    """n바이트 딱 맞게 읽기 (길이 프레임용)"""
+def recv_exact(conn: socket.socket, n: int) -> bytes:
+    """n바이트 딱 맞게 읽기 (길이 프레임용)."""
     data = b""
     while len(data) < n:
         chunk = conn.recv(n - len(data))
@@ -19,7 +19,7 @@ def recv_exact(conn, n: int) -> bytes:
     return data
 
 
-def main():
+def main() -> None:
     # 포트는 인자로 받기 (없으면 기본 9000)
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 9000
 
@@ -40,6 +40,8 @@ def main():
     (N_even, e_even), (N_odd, e_odd) = rcv.public_keys
     pk_str = f"{N_even},{e_even};{N_odd},{e_odd}"
     conn.sendall(pk_str.encode("utf-8"))
+    print(f"[Receiver] even: N={short_int(N_even)}, e={e_even}")
+    print(f"[Receiver] odd : N={short_int(N_odd)},  e={e_odd}")
     print("[Receiver] Public keys sent.")
 
     # 4) 송신자로부터 enc_seed(정수) 수신
@@ -51,7 +53,7 @@ def main():
         return
 
     enc_seed = int(enc_seed_data)
-    print("[Receiver] EncSeed received:", enc_seed)
+    print("[Receiver] EncSeed received.")
 
     # 5) 하이브리드 암호 초기화
     rcv.seed_init(enc_seed)
@@ -69,7 +71,7 @@ def main():
 
         msg_len = int.from_bytes(header, "big")
         if msg_len == 0:
-            print("[Receiver] Received close signal. Bye!")
+            print("[Receiver] Close signal received. Bye!")
             break
 
         cipher = recv_exact(conn, msg_len)
