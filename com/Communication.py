@@ -101,6 +101,24 @@ def rsa_encrypt_bytes_public(M: bytes, N: int, e: int) -> bytes:
 
     return bytes(res)
 
+# --- Helper Functions for Cross-Index Mixing ---
+def interleave(bytes_even: bytes, bytes_odd: bytes) -> bytes:
+    """Mixes two byte arrays: [A0, B0, A1, B1, A2, B2...]"""
+    res = bytearray()
+    # zip stops at the shortest length, but RSA blocks should be equal length.
+    for a, b in zip(bytes_even, bytes_odd):
+        res.append(a)
+        res.append(b)
+    return bytes(res)
+
+def deinterleave(mixed: bytes) -> Tuple[bytes, bytes]:
+    """Separates mixed bytes back into two arrays."""
+    # Slicing: [start:end:step]
+    bytes_even = mixed[0::2] # Index 0, 2, 4...
+    bytes_odd = mixed[1::2] # Index 1, 3, 5...
+    return bytes_even, bytes_odd
+# -----------------------------------------------
+
 
 class Receiver:
     """
@@ -122,9 +140,9 @@ class Receiver:
         self.seed_odd: Optional[int] = None
         self.cipher: Optional[Hybrid_3RLC] = None
 
-        print("[Receiver] RSA (even/odd) keys ready")
-        print(f"[Receiver] even key: N={short_int(self.rsa_even.N)}, e={self.rsa_even.e}")
-        print(f"[Receiver] odd  key: N={short_int(self.rsa_odd.N)},  e={self.rsa_odd.e}")
+        print("[Receiver] RSA (짝수/홀수) 키 준비 완료")
+        print(f"[Receiver] 짝수 키: N={short_int(self.rsa_even.N)}, e={self.rsa_even.e}")
+        print(f"[Receiver] 홀수 키: N={short_int(self.rsa_odd.N)},  e={self.rsa_odd.e}")
 
     @property
     def public_keys(self) -> Tuple[Tuple[int, int], Tuple[int, int]]:
@@ -139,7 +157,7 @@ class Receiver:
         print(f"[Receiver] seed_even={self.seed_even}, seed_odd={self.seed_odd}")
 
         self.cipher = build_cipher(self.seed_even, self.seed_odd)
-        print("[Receiver] Hybrid cipher initialized.")
+        print("[Receiver] 하이브리드 암호 초기화 완료.")
 
     def decrypt(self, cipher: bytes) -> bytes:
         """
@@ -152,29 +170,21 @@ class Receiver:
         if self.cipher is None:
             raise RuntimeError("Receiver: seed_init이 아직 호출되지 않았습니다.")
 
-        if len(cipher) < 4:
-            raise ValueError("cipher 길이가 너무 짧습니다.")
+        enc_even, enc_odd = deinterleave(cipher)
 
-        even_len = int.from_bytes(cipher[:4], "big")
-        if even_len < 0 or even_len > len(cipher) - 4:
-            raise ValueError("잘못된 even_len")
-
-        enc_even = cipher[4:4 + even_len]
-        enc_odd = cipher[4 + even_len:]
-
-        print(f"[Receiver] [5] EncEven ({len(enc_even)}B): {short_hex(enc_even)}")
-        print(f"[Receiver] [5] EncOdd  ({len(enc_odd)}B): {short_hex(enc_odd)}")
+        print(f"[Receiver] [5] 짝수 암호문 ({len(enc_even)}B): {short_hex(enc_even)}")
+        print(f"[Receiver] [5] 홀수 암호문 ({len(enc_odd)}B): {short_hex(enc_odd)}")
 
         # 1) 짝/홀 RSA 복호
         even_stream = self.rsa_even.decrypt_bytes(enc_even)
         odd_stream = self.rsa_odd.decrypt_bytes(enc_odd)
 
-        print(f"[Receiver] [6] DecRSA Even: {short_hex(even_stream)}")
-        print(f"[Receiver] [6] DecRSA Odd : {short_hex(odd_stream)}")
+        print(f"[Receiver] [6] RSA 복호 짝수: {short_hex(even_stream)}")
+        print(f"[Receiver] [6] RSA 복호 홀수: {short_hex(odd_stream)}")
 
         # 2) LFSR 기반 하이브리드 복호
         plain = self.cipher.decrypt_merge(even_stream, odd_stream)
-        print(f"[Receiver] [7] Plain: {plain}")
+        print(f"[Receiver] [7] 평문: {plain}")
 
         return plain
 
@@ -197,8 +207,8 @@ class Sender:
         self.N_even, self.e_even = N_even, e_even
         self.N_odd, self.e_odd = N_odd, e_odd
 
-        print(f"[Sender]  even key: N={short_int(self.N_even)}, e={self.e_even}")
-        print(f"[Sender]  odd  key: N={short_int(self.N_odd)},  e={self.e_odd}")
+        print(f"[Sender]  짝수 키: N={short_int(self.N_even)}, e={self.e_even}")
+        print(f"[Sender]  홀수 키: N={short_int(self.N_odd)},  e={self.e_odd}")
 
         # 24비트 랜덤 seed 2개 생성
         self.seed_even = secrets.randbits(24)
@@ -214,7 +224,7 @@ class Sender:
 
         # 동일한 seed 기반으로 하이브리드 스트림 암호 초기화
         self.cipher = build_cipher(self.seed_even, self.seed_odd)
-        print("[Sender] Hybrid cipher initialized.")
+        print("[Sender] 하이브리드 암호 초기화 완료.")
 
     def encrypt(self, msg: bytes) -> bytes:
         """
@@ -223,22 +233,21 @@ class Sender:
         2) 각 스트림을 대응하는 공개키로 RSA 암호화
         3) [짝수 암호문 길이(4B)] + [짝수 암호문] + [홀수 암호문] 반환
         """
-        print(f"[Sender] [1] Plain ({len(msg)}B): {msg}")
+        print(f"[Sender] [1] 평문 ({len(msg)}B): {msg}")
 
         # 1) LFSR 기반 짝/홀 스트림 생성
         even_stream, odd_stream = self.cipher.encrypt_split(msg)
-        print(f"[Sender] [2] LFSR XOR Even: {short_hex(even_stream)}")
-        print(f"[Sender] [2] LFSR XOR Odd : {short_hex(odd_stream)}")
+        print(f"[Sender] [2] LFSR XOR 짝수: {short_hex(even_stream)}")
+        print(f"[Sender] [2] LFSR XOR 홀수: {short_hex(odd_stream)}")
 
         # 2) 짝/홀 스트림 각각 RSA 암호화 (서로 다른 공개키 사용)
         enc_even = rsa_encrypt_bytes_public(even_stream, self.N_even, self.e_even)
         enc_odd = rsa_encrypt_bytes_public(odd_stream, self.N_odd, self.e_odd)
-        print(f"[Sender] [3] RSA Enc Even: {short_hex(enc_even)}")
-        print(f"[Sender] [3] RSA Enc Odd : {short_hex(enc_odd)}")
+        print(f"[Sender] [3] RSA 암호화 짝수: {short_hex(enc_even)}")
+        print(f"[Sender] [3] RSA 암호화 홀수: {short_hex(enc_odd)}")
 
-        # 3) 패킹
-        even_len = len(enc_even).to_bytes(4, "big")
-        packet = even_len + enc_even + enc_odd
-        print(f"[Sender] [4] Packet: even_len={len(enc_even)}, total={len(packet)}B")
+        # 3) 인덱스 기반 교차결합
+        packet = interleave(enc_even, enc_odd)
+        print(f"[Sender] [4] 패킷: {short_hex(packet)}")
 
         return packet
