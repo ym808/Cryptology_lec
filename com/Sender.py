@@ -55,7 +55,7 @@ def main() -> None:
         if msg_text.strip().lower() in ("/quit", "quit", "exit"):
             # 길이 0 패킷을 종료 신호로 사용
             client.sendall((0).to_bytes(4, "big"))
-            print("[Sender] 종료 신호 전송. 안녕!")
+            print("[Sender] 종료 신호 전송.")
             break
 
         msg_bytes = msg_text.encode("utf-8")
