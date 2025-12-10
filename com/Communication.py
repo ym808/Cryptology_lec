@@ -7,11 +7,6 @@ from crypto.RSA import RSA3P
 from crypto.LfsrBlock import LfsrBlock
 from crypto.Hybrid_3RLC import Hybrid_3RLC
 
-# LFSR 탭 (원하면 조정 가능)
-XOR_POS1 = [0, 3, 5]
-XOR_POS2 = [0, 2, 6]
-XOR_POS3 = [0, 1, 4]
-
 
 def split_24bit(seed_24: int):
     """24비트 정수 → 8비트 3개로 쪼개기."""
@@ -27,8 +22,8 @@ def build_cipher(seed_even: int, seed_odd: int) -> Hybrid_3RLC:
     even_seeds = split_24bit(seed_even)
     odd_seeds = split_24bit(seed_odd)
 
-    lfsr_even = LfsrBlock(even_seeds, XOR_POS1, XOR_POS2, XOR_POS3)
-    lfsr_odd = LfsrBlock(odd_seeds, XOR_POS1, XOR_POS2, XOR_POS3)
+    lfsr_even = LfsrBlock(even_seeds)
+    lfsr_odd = LfsrBlock(odd_seeds)
 
     return Hybrid_3RLC(lfsr_even, lfsr_odd)
 
@@ -101,23 +96,21 @@ def rsa_encrypt_bytes_public(M: bytes, N: int, e: int) -> bytes:
 
     return bytes(res)
 
-# --- Helper Functions for Cross-Index Mixing ---
+# --- 교차 인덱스 기반 결합 ---
 def interleave(bytes_even: bytes, bytes_odd: bytes) -> bytes:
-    """Mixes two byte arrays: [A0, B0, A1, B1, A2, B2...]"""
+    """[A0, B0, A1, B1, A2, B2...] 형태로 결합"""
     res = bytearray()
-    # zip stops at the shortest length, but RSA blocks should be equal length.
+
     for a, b in zip(bytes_even, bytes_odd):
         res.append(a)
         res.append(b)
     return bytes(res)
 
 def deinterleave(mixed: bytes) -> Tuple[bytes, bytes]:
-    """Separates mixed bytes back into two arrays."""
-    # Slicing: [start:end:step]
-    bytes_even = mixed[0::2] # Index 0, 2, 4...
-    bytes_odd = mixed[1::2] # Index 1, 3, 5...
+    """[A0, B0, A1, B1, A2, B2...] 형태로 분리"""
+    bytes_even = mixed[0::2] # 인덱스 0, 2, 4...
+    bytes_odd = mixed[1::2] # 인덱스 1, 3, 5...
     return bytes_even, bytes_odd
-# -----------------------------------------------
 
 
 class Receiver:

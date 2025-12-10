@@ -58,7 +58,7 @@ def main() -> None:
     # 5) 하이브리드 암호 초기화
     rcv.seed_init(enc_seed)
 
-    print("[Receiver] 여러 메시지 수신 준비 완료.")
+    print("[Receiver] 메시지 수신 준비 완료.")
     print("[Receiver] (송신자가 종료 패킷을 보내면 자동 종료됩니다.)")
 
     # 6) 여러 메시지 반복 수신
@@ -71,7 +71,7 @@ def main() -> None:
 
         msg_len = int.from_bytes(header, "big")
         if msg_len == 0:
-            print("[Receiver] 종료 신호 수신. 안녕!")
+            print("[Receiver] 종료 신호 수신.")
             break
 
         cipher = recv_exact(conn, msg_len)
